@@ -31,9 +31,15 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/menu', require('./routes/menu'));
 app.use('/api/orders', require('./routes/orders'));
 
-// 健康检查
+// 健康检查（含数据库连接状态，便于排查）
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Server is running' });
+  const dbState = mongoose.connection.readyState; // 0=断开 1=已连接 2=连接中 3=断开中
+  const dbOk = dbState === 1;
+  res.status(dbOk ? 200 : 503).json({
+    status: dbOk ? 'ok' : 'db_disconnected',
+    message: dbOk ? 'Server is running' : 'Database not connected',
+    dbConnected: dbOk,
+  });
 });
 
 // 连接 MongoDB

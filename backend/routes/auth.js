@@ -48,8 +48,11 @@ router.post('/register', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('注册错误:', error);
-    res.status(500).json({ error: '服务器错误' });
+    console.error('注册错误:', error.message || error);
+    if (error.name === 'MongoServerError' && error.code === 11000) {
+      return res.status(400).json({ error: '用户名已存在' });
+    }
+    res.status(500).json({ error: '服务器错误', detail: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -91,8 +94,8 @@ router.post('/login', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('登录错误:', error);
-    res.status(500).json({ error: '服务器错误' });
+    console.error('登录错误:', error.message || error);
+    res.status(500).json({ error: '服务器错误', detail: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
