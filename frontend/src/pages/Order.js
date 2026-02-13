@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { menuAPI, orderAPI } from '../services/api';
@@ -17,15 +17,7 @@ const Order = () => {
     note: '',
   });
 
-  useEffect(() => {
-    if (cartItems.length === 0) {
-      navigate('/');
-      return;
-    }
-    fetchMenuItems();
-  }, []);
-
-  const fetchMenuItems = async () => {
+  const fetchMenuItems = useCallback(async () => {
     try {
       setLoading(true);
       const response = await menuAPI.getAll();
@@ -35,7 +27,15 @@ const Order = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (cartItems.length === 0) {
+      navigate('/');
+      return;
+    }
+    fetchMenuItems();
+  }, [cartItems.length, navigate, fetchMenuItems]);
 
   const getCartItemDetails = () => {
     return cartItems.map((cartItem) => {

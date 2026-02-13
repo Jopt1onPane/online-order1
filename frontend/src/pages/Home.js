@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { menuAPI } from '../services/api';
 import { useCart } from '../context/CartContext';
 import CartButton from '../components/CartButton';
@@ -12,11 +12,7 @@ const Home = () => {
   const [selectedCategory, setSelectedCategory] = useState('全部');
   const { addToCart } = useCart();
 
-  useEffect(() => {
-    fetchMenuItems();
-  }, [selectedCategory]);
-
-  const fetchMenuItems = async () => {
+  const fetchMenuItems = useCallback(async () => {
     try {
       setLoading(true);
       const category = selectedCategory === '全部' ? '' : selectedCategory;
@@ -27,7 +23,11 @@ const Home = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCategory]);
+
+  useEffect(() => {
+    fetchMenuItems();
+  }, [fetchMenuItems]);
 
   const handleAddToCart = (item) => {
     addToCart({

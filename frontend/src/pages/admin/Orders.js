@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { orderAPI } from '../../services/api';
 import './Orders.css';
@@ -11,11 +11,7 @@ const Orders = () => {
   const [selectedStatus, setSelectedStatus] = useState('全部');
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetchOrders();
-  }, [selectedStatus]);
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       const status = selectedStatus === '全部' ? '' : selectedStatus;
@@ -27,7 +23,11 @@ const Orders = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedStatus]);
+
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
 
   const handleStatusChange = async (orderId, newStatus) => {
     try {

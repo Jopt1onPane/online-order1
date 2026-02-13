@@ -5,7 +5,7 @@ import { menuAPI } from '../services/api';
 import './Cart.css';
 
 const Cart = () => {
-  const { cartItems, merchantId, updateQuantity, removeFromCart, getTotalPrice, clearCart } = useCart();
+  const { cartItems, updateQuantity, removeFromCart, getTotalPrice } = useCart();
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
