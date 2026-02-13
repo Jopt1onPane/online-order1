@@ -37,24 +37,32 @@ export const CartProvider = ({ children }) => {
   }, [cartItems, merchantId]);
 
   const addToCart = (item) => {
+    const merchant = item.merchantId?._id || item.merchantId;
     // 如果购物车为空或属于不同商家，清空购物车
-    if (merchantId && merchantId !== item.merchantId) {
+    if (merchantId && merchantId !== merchant) {
       setCartItems([]);
-      setMerchantId(item.merchantId);
+      setMerchantId(merchant);
     } else if (!merchantId) {
-      setMerchantId(item.merchantId);
+      setMerchantId(merchant);
     }
 
+    const snapshot = {
+      menuItemId: item._id,
+      quantity: 1,
+      name: item.name,
+      price: item.price,
+      imageUrl: item.imageUrl || '',
+    };
     setCartItems((prevItems) => {
       const existingItem = prevItems.find((i) => i.menuItemId === item._id);
       if (existingItem) {
         return prevItems.map((i) =>
           i.menuItemId === item._id
-            ? { ...i, quantity: i.quantity + 1 }
+            ? { ...i, quantity: i.quantity + 1, name: i.name || item.name, price: i.price != null ? i.price : item.price, imageUrl: i.imageUrl != null ? i.imageUrl : (item.imageUrl || '') }
             : i
         );
       }
-      return [...prevItems, { menuItemId: item._id, quantity: 1 }];
+      return [...prevItems, snapshot];
     });
   };
 
@@ -82,10 +90,16 @@ export const CartProvider = ({ children }) => {
     setMerchantId(null);
   };
 
-  const getTotalPrice = (menuItems) => {
+  const getTotalPrice = (menuItemsOrCartItems) => {
+    if (Array.isArray(menuItemsOrCartItems) && menuItemsOrCartItems.length > 0 && menuItemsOrCartItems[0]._id != null) {
+      return cartItems.reduce((total, cartItem) => {
+        const menuItem = menuItemsOrCartItems.find((item) => item._id === cartItem.menuItemId);
+        return total + (menuItem ? menuItem.price * cartItem.quantity : 0);
+      }, 0);
+    }
     return cartItems.reduce((total, cartItem) => {
-      const menuItem = menuItems.find((item) => item._id === cartItem.menuItemId);
-      return total + (menuItem ? menuItem.price * cartItem.quantity : 0);
+      const price = cartItem.price != null ? Number(cartItem.price) : 0;
+      return total + price * (cartItem.quantity || 0);
     }, 0);
   };
 

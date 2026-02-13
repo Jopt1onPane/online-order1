@@ -61,6 +61,23 @@ router.get('/', async (req, res) => {
   }
 });
 
+// 按 ID 列表获取菜品（购物车等场景，减少请求量）
+router.get('/by-ids', async (req, res) => {
+  try {
+    const idsStr = req.query.ids;
+    if (!idsStr || typeof idsStr !== 'string') {
+      return res.json([]);
+    }
+    const ids = idsStr.split(',').map((id) => id.trim()).filter(Boolean);
+    if (ids.length === 0) return res.json([]);
+    const items = await MenuItem.find({ _id: { $in: ids }, isAvailable: true });
+    res.json(items);
+  } catch (error) {
+    console.error('按ID获取菜品错误:', error);
+    res.status(500).json({ error: '服务器错误' });
+  }
+});
+
 // 获取单个菜品详情
 router.get('/:id', async (req, res) => {
   try {

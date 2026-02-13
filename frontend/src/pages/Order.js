@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { menuAPI, orderAPI } from '../services/api';
@@ -7,79 +7,72 @@ import './Order.css';
 const Order = () => {
   const navigate = useNavigate();
   const { cartItems, merchantId, getTotalPrice, clearCart } = useCart();
-  const [menuItems, setMenuItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [extraItemData, setExtraItemData] = useState({});
+  const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [customerInfo, setCustomerInfo] = useState({
-    name: '',
-    phone: '',
-    address: '',
-    note: '',
-  });
 
-  const fetchMenuItems = useCallback(async () => {
-    try {
-      setLoading(true);
-      const response = await menuAPI.getAll();
-      setMenuItems(response.data);
-    } catch (error) {
-      console.error('获取菜品失败:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const needFetch = cartItems.length > 0 && cartItems.some((i) => !i.name);
+  const fetchIds = useMemo(() => (needFetch ? cartItems.map((i) => i.menuItemId) : []), [needFetch, cartItems]);
 
   useEffect(() => {
     if (cartItems.length === 0) {
       navigate('/');
       return;
     }
-    fetchMenuItems();
-  }, [cartItems.length, navigate, fetchMenuItems]);
+  }, [cartItems.length, navigate]);
 
-  const getCartItemDetails = () => {
-    return cartItems.map((cartItem) => {
-      const menuItem = menuItems.find((item) => item._id === cartItem.menuItemId);
-      return {
-        ...cartItem,
-        menuItem,
-      };
-    }).filter((item) => item.menuItem);
-  };
+  useEffect(() => {
+    if (fetchIds.length === 0) return;
+    let cancelled = false;
+    setLoading(true);
+    menuAPI.getByIds(fetchIds)
+      .then((res) => {
+        if (cancelled) return;
+        const map = {};
+        (res.data || []).forEach((m) => {
+          map[m._id] = { name: m.name, price: m.price };
+        });
+        setExtraItemData(map);
+      })
+      .catch(() => { if (!cancelled) setExtraItemData({}); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [fetchIds.join(',')]);
 
-  const cartDetails = getCartItemDetails();
-  const totalPrice = getTotalPrice(menuItems);
+  const cartDetails = useMemo(() => {
+    return cartItems.map((cartItem) => ({
+      ...cartItem,
+      name: cartItem.name ?? extraItemData[cartItem.menuItemId]?.name,
+      price: cartItem.price ?? extraItemData[cartItem.menuItemId]?.price,
+    })).filter((item) => item.name != null);
+  }, [cartItems, extraItemData]);
+
+  const totalPrice = cartDetails.length
+    ? cartDetails.reduce((t, i) => t + Number(i.price || 0) * (i.quantity || 0), 0)
+    : getTotalPrice();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!customerInfo.name || !customerInfo.phone) {
-      alert('请填写姓名和电话');
-      return;
-    }
-
     try {
       setSubmitting(true);
       await orderAPI.create({
-        items: cartItems,
+        items: cartItems.map(({ menuItemId, quantity }) => ({ menuItemId, quantity })),
         merchantId,
-        customerInfo,
+        customerInfo: {},
       });
-      
       alert('订单提交成功！');
       clearCart();
       navigate('/');
     } catch (error) {
       console.error('提交订单失败:', error);
-      alert('提交订单失败，请重试');
+      alert(error.response?.data?.error || '提交订单失败，请重试');
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) {
-    return <div className="loading">加载中...</div>;
-  }
+  if (cartItems.length === 0) return null;
+  if (needFetch && loading) return <div className="loading">加载中...</div>;
 
   return (
     <div className="order">
@@ -93,11 +86,11 @@ const Order = () => {
           {cartDetails.map((item) => (
             <div key={item.menuItemId} className="order-item">
               <div className="order-item-info">
-                <span className="item-name">{item.menuItem.name}</span>
+                <span className="item-name">{item.name}</span>
                 <span className="item-quantity">x{item.quantity}</span>
               </div>
               <span className="item-price">
-                ¥{(item.menuItem.price * item.quantity).toFixed(2)}
+                ¥{(Number(item.price) * item.quantity).toFixed(2)}
               </span>
             </div>
           ))}
@@ -107,55 +100,17 @@ const Order = () => {
           </div>
         </div>
 
-        <form className="customer-form" onSubmit={handleSubmit}>
-          <h2>收货信息</h2>
-          <div className="form-group">
-            <label>姓名 *</label>
-            <input
-              type="text"
-              className="input"
-              value={customerInfo.name}
-              onChange={(e) => setCustomerInfo({ ...customerInfo, name: e.target.value })}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>电话 *</label>
-            <input
-              type="tel"
-              className="input"
-              value={customerInfo.phone}
-              onChange={(e) => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>地址</label>
-            <input
-              type="text"
-              className="input"
-              value={customerInfo.address}
-              onChange={(e) => setCustomerInfo({ ...customerInfo, address: e.target.value })}
-            />
-          </div>
-          <div className="form-group">
-            <label>备注</label>
-            <textarea
-              className="input"
-              rows="3"
-              value={customerInfo.note}
-              onChange={(e) => setCustomerInfo({ ...customerInfo, note: e.target.value })}
-              placeholder="如有特殊要求，请在此说明"
-            />
-          </div>
+        <div className="order-submit-card">
+          <p className="order-submit-hint">确认订单内容无误后点击提交</p>
           <button
-            type="submit"
+            type="button"
             className="btn btn-primary submit-btn"
             disabled={submitting}
+            onClick={handleSubmit}
           >
             {submitting ? '提交中...' : '提交订单'}
           </button>
-        </form>
+        </div>
       </div>
     </div>
   );

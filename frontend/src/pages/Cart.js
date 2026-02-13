@@ -1,44 +1,51 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { menuAPI } from '../services/api';
 import './Cart.css';
 
+const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+
 const Cart = () => {
   const { cartItems, updateQuantity, removeFromCart, getTotalPrice } = useCart();
-  const [menuItems, setMenuItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [extraItemData, setExtraItemData] = useState({});
+  const [loading, setLoading] = useState(false);
+
+  const needFetch = cartItems.length > 0 && cartItems.some((i) => !i.name);
+  const fetchIds = useMemo(() => needFetch ? cartItems.map((i) => i.menuItemId) : [], [needFetch, cartItems]);
 
   useEffect(() => {
-    fetchMenuItems();
-  }, []);
+    if (fetchIds.length === 0) return;
+    let cancelled = false;
+    setLoading(true);
+    menuAPI.getByIds(fetchIds)
+      .then((res) => {
+        if (cancelled) return;
+        const map = {};
+        (res.data || []).forEach((m) => {
+          map[m._id] = { name: m.name, price: m.price, imageUrl: m.imageUrl || '' };
+        });
+        setExtraItemData(map);
+      })
+      .catch(() => { if (!cancelled) setExtraItemData({}); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [fetchIds.join(',')]);
 
-  const fetchMenuItems = async () => {
-    try {
-      setLoading(true);
-      const response = await menuAPI.getAll();
-      setMenuItems(response.data);
-    } catch (error) {
-      console.error('获取菜品失败:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const cartDetails = useMemo(() => {
+    return cartItems.map((cartItem) => ({
+      ...cartItem,
+      name: cartItem.name ?? extraItemData[cartItem.menuItemId]?.name,
+      price: cartItem.price ?? extraItemData[cartItem.menuItemId]?.price,
+      imageUrl: cartItem.imageUrl ?? extraItemData[cartItem.menuItemId]?.imageUrl ?? '',
+    })).filter((item) => item.name != null);
+  }, [cartItems, extraItemData]);
 
-  const getCartItemDetails = () => {
-    return cartItems.map((cartItem) => {
-      const menuItem = menuItems.find((item) => item._id === cartItem.menuItemId);
-      return {
-        ...cartItem,
-        menuItem,
-      };
-    }).filter((item) => item.menuItem); // 过滤掉不存在的菜品
-  };
+  const totalPrice = cartDetails.length
+    ? cartDetails.reduce((t, i) => t + Number(i.price || 0) * (i.quantity || 0), 0)
+    : getTotalPrice();
 
-  const cartDetails = getCartItemDetails();
-  const totalPrice = getTotalPrice(menuItems);
-
-  if (loading) {
+  if (needFetch && loading) {
     return <div className="loading">加载中...</div>;
   }
 
@@ -66,18 +73,15 @@ const Cart = () => {
         {cartDetails.map((item) => (
           <div key={item.menuItemId} className="cart-item">
             <div className="cart-item-image">
-              {item.menuItem.imageUrl ? (
-                <img
-                  src={`${process.env.REACT_APP_API_URL || 'http://localhost:3000'}${item.menuItem.imageUrl}`}
-                  alt={item.menuItem.name}
-                />
+              {item.imageUrl ? (
+                <img src={`${API_BASE}${item.imageUrl}`} alt={item.name} />
               ) : (
                 <div className="placeholder-image">暂无图片</div>
               )}
             </div>
             <div className="cart-item-info">
-              <h3>{item.menuItem.name}</h3>
-              <p className="price">¥{item.menuItem.price.toFixed(2)}</p>
+              <h3>{item.name}</h3>
+              <p className="price">¥{Number(item.price).toFixed(2)}</p>
             </div>
             <div className="cart-item-controls">
               <button
@@ -95,7 +99,7 @@ const Cart = () => {
               </button>
             </div>
             <div className="cart-item-total">
-              <span>¥{(item.menuItem.price * item.quantity).toFixed(2)}</span>
+              <span>¥{(Number(item.price) * item.quantity).toFixed(2)}</span>
             </div>
             <button
               className="remove-btn"

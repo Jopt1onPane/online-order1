@@ -50,6 +50,7 @@ export const authAPI = {
 export const menuAPI = {
   getAll: (category) => api.get('/menu', { params: { category } }),
   getById: (id) => api.get(`/menu/${id}`),
+  getByIds: (ids) => api.get('/menu/by-ids', { params: { ids: ids.join(',') } }),
   create: (data) => {
     const formData = new FormData();
     formData.append('name', data.name);
