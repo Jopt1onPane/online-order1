@@ -6,9 +6,18 @@ require('dotenv').config();
 
 const app = express();
 
-// 中间件
+// 中间件：支持多个前端来源（用逗号分隔，如 "https://xxx.vercel.app,http://localhost:3001"）
+const allowedOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(',').map((o) => o.trim()).filter(Boolean)
+  : ['http://localhost:3001'];
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3001',
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, false);
+    }
+  },
   credentials: true
 }));
 app.use(express.json());
