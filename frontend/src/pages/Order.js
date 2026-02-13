@@ -37,7 +37,7 @@ const Order = () => {
       .catch(() => { if (!cancelled) setExtraItemData({}); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [fetchIds.join(',')]);
+  }, [fetchIds]);
 
   const cartDetails = useMemo(() => {
     return cartItems.map((cartItem) => ({
