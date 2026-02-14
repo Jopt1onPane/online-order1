@@ -11,8 +11,6 @@ const Login = () => {
   const [formData, setFormData] = useState({
     username: '',
     password: '',
-    shopName: '',
-    contactInfo: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -40,8 +38,12 @@ const Login = () => {
         login(response.data.token, response.data.merchant);
         navigate('/admin/dashboard');
       } else {
-        // 注册
-        const response = await authAPI.register(formData);
+        // 注册（后端需要 shopName，用用户名代替）
+        const response = await authAPI.register({
+          ...formData,
+          shopName: formData.username,
+          contactInfo: '',
+        });
         login(response.data.token, response.data.merchant);
         navigate('/admin/dashboard');
       }
@@ -87,33 +89,6 @@ const Login = () => {
             />
           </div>
 
-          {!isLogin && (
-            <>
-              <div className="form-group">
-                <label>店铺名称</label>
-                <input
-                  type="text"
-                  name="shopName"
-                  className="input"
-                  value={formData.shopName}
-                  onChange={handleChange}
-                  required={!isLogin}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>联系方式（可选）</label>
-                <input
-                  type="text"
-                  name="contactInfo"
-                  className="input"
-                  value={formData.contactInfo}
-                  onChange={handleChange}
-                />
-              </div>
-            </>
-          )}
-
           <button
             type="submit"
             className="btn btn-primary login-btn"
@@ -133,8 +108,6 @@ const Login = () => {
               setFormData({
                 username: '',
                 password: '',
-                shopName: '',
-                contactInfo: '',
               });
             }}
           >

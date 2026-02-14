@@ -12,7 +12,7 @@ const Dashboard = () => {
         <div className="header-content">
           <h1>商家后台</h1>
           <div className="header-actions">
-            <span className="merchant-name">欢迎，{merchant?.shopName || merchant?.username}</span>
+            <span className="merchant-name">欢迎，{merchant?.username}</span>
             <button onClick={logout} className="btn btn-secondary">
               退出登录
             </button>
