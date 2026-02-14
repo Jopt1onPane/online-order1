@@ -37,6 +37,11 @@
   margin-bottom: 20px;
 }
 
+/* 强制只显示前两个表单项，第三、四个（店铺名称、联系方式）不显示 */
+.login-form .form-group ~ .form-group ~ .form-group {
+  display: none !important;
+}
+
 .form-group {
   margin-bottom: 20px;
 }
