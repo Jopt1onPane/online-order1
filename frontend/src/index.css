@@ -17,3 +17,14 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* 商家注册页：只保留用户名、密码，隐藏第3、4个表单项（店铺名称、联系方式） */
+.admin-login .login-form .form-group ~ .form-group ~ .form-group {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
