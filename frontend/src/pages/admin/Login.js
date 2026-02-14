@@ -98,6 +98,7 @@ const Login = () => {
         </form>
 
         <div className="login-footer">
+          {/* 切换登录/注册：两种模式都只显示用户名+密码两个输入框，切换时清空表单 */}
           <button
             type="button"
             className="toggle-btn"

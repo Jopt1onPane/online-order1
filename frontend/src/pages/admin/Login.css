@@ -32,6 +32,7 @@
   font-size: 14px;
 }
 
+/* 登录与注册共用同一表单，仅用户名、密码两个表单项 */
 .login-form {
   margin-bottom: 20px;
 }
