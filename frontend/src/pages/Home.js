@@ -39,7 +39,7 @@ const Home = () => {
   return (
     <div className="home">
       <header className="home-header">
-        <h1>🍽️ 美味餐厅</h1>
+        <h1>🦢 Rez-one学生食堂</h1>
         <p>欢迎光临，尽情挑选您喜爱的美食</p>
       </header>
 
