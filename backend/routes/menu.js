@@ -131,7 +131,7 @@ router.post('/', authenticateMerchant, upload.single('image'), async (req, res) 
   }
 });
 
-// 更新菜品（需要商家认证）
+// 更新菜品（需要商家认证；共享模式：任意已登录商家均可修改任意菜品）
 router.put('/:id', authenticateMerchant, upload.single('image'), async (req, res) => {
   try {
     const { name, description, price, category, isAvailable } = req.body;
@@ -139,11 +139,6 @@ router.put('/:id', authenticateMerchant, upload.single('image'), async (req, res
 
     if (!menuItem) {
       return res.status(404).json({ error: '菜品不存在' });
-    }
-
-    // 验证是否为该商家的菜品
-    if (menuItem.merchantId.toString() !== req.merchant._id.toString()) {
-      return res.status(403).json({ error: '无权修改此菜品' });
     }
 
     if (name) menuItem.name = name;
@@ -171,18 +166,13 @@ router.put('/:id', authenticateMerchant, upload.single('image'), async (req, res
   }
 });
 
-// 删除菜品（需要商家认证）
+// 删除菜品（需要商家认证；共享模式：任意已登录商家均可删除任意菜品）
 router.delete('/:id', authenticateMerchant, async (req, res) => {
   try {
     const menuItem = await MenuItem.findById(req.params.id);
 
     if (!menuItem) {
       return res.status(404).json({ error: '菜品不存在' });
-    }
-
-    // 验证是否为该商家的菜品
-    if (menuItem.merchantId.toString() !== req.merchant._id.toString()) {
-      return res.status(403).json({ error: '无权删除此菜品' });
     }
 
     // 删除图片文件
@@ -201,10 +191,11 @@ router.delete('/:id', authenticateMerchant, async (req, res) => {
   }
 });
 
-// 获取商家自己的所有菜品（需要商家认证）
+// 获取所有菜品（商家端共享：任意商家登录后看到同一份菜品列表）
 router.get('/merchant/my-items', authenticateMerchant, async (req, res) => {
   try {
-    const menuItems = await MenuItem.find({ merchantId: req.merchant._id })
+    const menuItems = await MenuItem.find({})
+      .populate('merchantId', 'shopName username')
       .sort({ createdAt: -1 });
     res.json(menuItems);
   } catch (error) {

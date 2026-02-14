@@ -74,18 +74,18 @@ router.post('/', async (req, res) => {
   }
 });
 
-// 获取商家所有订单（需要商家认证）
+// 获取所有订单（商家端共享：任意商家登录后看到同一份订单列表）
 router.get('/merchant/my-orders', authenticateMerchant, async (req, res) => {
   try {
     const { status } = req.query;
-    const query = { merchantId: req.merchant._id };
-    
+    const query = {};
     if (status && status !== '全部') {
       query.status = status;
     }
 
     const orders = await Order.find(query)
       .populate('items.menuItemId')
+      .populate('merchantId', 'shopName')
       .sort({ createdAt: -1 });
 
     res.json(orders);
@@ -95,7 +95,7 @@ router.get('/merchant/my-orders', authenticateMerchant, async (req, res) => {
   }
 });
 
-// 获取单个订单详情（需要商家认证）
+// 获取单个订单详情（需要商家认证；共享模式：任意商家可查看任意订单）
 router.get('/:id', authenticateMerchant, async (req, res) => {
   try {
     const order = await Order.findById(req.params.id)
@@ -106,11 +106,6 @@ router.get('/:id', authenticateMerchant, async (req, res) => {
       return res.status(404).json({ error: '订单不存在' });
     }
 
-    // 验证是否为该商家的订单
-    if (order.merchantId._id.toString() !== req.merchant._id.toString()) {
-      return res.status(403).json({ error: '无权查看此订单' });
-    }
-
     res.json(order);
   } catch (error) {
     console.error('获取订单详情错误:', error);
@@ -118,7 +113,7 @@ router.get('/:id', authenticateMerchant, async (req, res) => {
   }
 });
 
-// 更新订单状态（需要商家认证）
+// 更新订单状态（需要商家认证；共享模式：任意商家可处理任意订单）
 router.patch('/:id/status', authenticateMerchant, async (req, res) => {
   try {
     const { status } = req.body;
@@ -126,11 +121,6 @@ router.patch('/:id/status', authenticateMerchant, async (req, res) => {
 
     if (!order) {
       return res.status(404).json({ error: '订单不存在' });
-    }
-
-    // 验证是否为该商家的订单
-    if (order.merchantId.toString() !== req.merchant._id.toString()) {
-      return res.status(403).json({ error: '无权修改此订单' });
     }
 
     if (!['待处理', '已完成', '已取消'].includes(status)) {
