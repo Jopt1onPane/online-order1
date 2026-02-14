@@ -41,11 +41,16 @@ const upload = multer({
 });
 
 // 获取所有菜品（公开接口，用户端使用）
+// 条件：上架中，或未设置 isAvailable 的旧数据也显示
 router.get('/', async (req, res) => {
   try {
     const { category } = req.query;
-    const query = { isAvailable: true };
-    
+    const query = {
+      $or: [
+        { isAvailable: true },
+        { isAvailable: { $exists: false } }
+      ]
+    };
     if (category && category !== '全部') {
       query.category = category;
     }
@@ -70,7 +75,10 @@ router.get('/by-ids', async (req, res) => {
     }
     const ids = idsStr.split(',').map((id) => id.trim()).filter(Boolean);
     if (ids.length === 0) return res.json([]);
-    const items = await MenuItem.find({ _id: { $in: ids }, isAvailable: true });
+    const items = await MenuItem.find({
+      _id: { $in: ids },
+      $or: [{ isAvailable: true }, { isAvailable: { $exists: false } }]
+    });
     res.json(items);
   } catch (error) {
     console.error('按ID获取菜品错误:', error);
