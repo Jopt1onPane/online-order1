@@ -4,7 +4,6 @@ import { authAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import './Login.css';
 
-// 注册仅需用户名与密码，店铺名称/联系方式已移除
 const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -31,7 +30,6 @@ const Login = () => {
 
     try {
       if (isLogin) {
-        // 登录
         const response = await authAPI.login({
           username: formData.username,
           password: formData.password,
@@ -39,9 +37,9 @@ const Login = () => {
         login(response.data.token, response.data.merchant);
         navigate('/admin/dashboard');
       } else {
-        // 注册（后端需要 shopName，用用户名代替）
         const response = await authAPI.register({
-          ...formData,
+          username: formData.username,
+          password: formData.password,
           shopName: formData.username,
           contactInfo: '',
         });
@@ -106,10 +104,7 @@ const Login = () => {
             onClick={() => {
               setIsLogin(!isLogin);
               setError('');
-              setFormData({
-                username: '',
-                password: '',
-              });
+              setFormData({ username: '', password: '' });
             }}
           >
             {isLogin ? '还没有账户？点击注册' : '已有账户？点击登录'}
