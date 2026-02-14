@@ -4,6 +4,7 @@ import { authAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import './Login.css';
 
+// 注册仅需用户名与密码，店铺名称/联系方式已移除
 const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
